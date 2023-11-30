@@ -1,7 +1,7 @@
 <template>
 
   <nav>
-    <AssetItem v-for="(asset, index) of assets" v-bind="asset" :key="index" @click="assetSelected(asset)" />
+    <AssetItem v-for="(asset, index) of assets" :asset="asset" :key="index" @click="assetSelected(asset)" />
   </nav>
 
   <section>
@@ -15,6 +15,10 @@ import AssetItem from './AssetItem.vue';
 import {ref} from 'vue';
 
 const assets = [
+    {
+      name: "curry.JPG",
+      url: "/pictures/wemby.jpg"
+    },
     {
       name: "IMG01248729.JPG",
       url: "/pictures/test.jpg"
@@ -43,12 +47,12 @@ const assetSelected = (asset) => {
 
 <style scoped>
   nav {
-    border: 2px solid #aaa;
+    border: 2px solid #ccc;
     flex-grow: 2;
   }
 
   section {
-    border: 2px solid white;
+    border: 2px solid #ccc;
     flex-grow: 5;
   }
 </style>
