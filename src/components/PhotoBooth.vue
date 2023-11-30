@@ -5,12 +5,14 @@
             <canvas id="picture" width="500" height="600" />
             <canvas id="overlay" width="500" height="600" />
         </div>
-        <div class="result">
-            <canvas id="result" width="300" height="300" />
-        </div>
-        <div class="controls">
-            <span>Scale: {{ squareScale }} <input type="range" class="form-control-range" id="formControlRange" v-model="squareScale" min="1" max="3" step="0.01"></span><br />
-            <span>Offset: X: {{ squareOffset.x }} Y: {{ squareOffset.y }}</span>
+        <div class="output">
+            <div class="preview">
+                <canvas id="preview" width="300" height="300" />
+            </div>
+            <div class="controls">
+                <span>Scale: {{ squareScale }} <input type="range" class="form-control-range" id="formControlRange" v-model="squareScale" min="1" max="3" step="0.01"></span><br />
+                <span>Offset: X: {{ squareOffset.x }} Y: {{ squareOffset.y }}</span>
+            </div>
         </div>
     </div>
 </template>
@@ -29,7 +31,7 @@ const props = defineProps({
 import * as faceapi from 'face-api.js';
 import { watch, ref } from 'vue';
 
-let squareScale = ref(0);
+let squareScale = ref(1);
 let squareOffset = ref({x: 0, y: 0});
 
 const loadNet = async () => {
@@ -94,12 +96,13 @@ const updateSquares = (original, scaled) => {
     ctx.stroke();
 
     // draw scaled and offset face square
-    const resultSquare = {
+    const resultRect = {
         x: imgWidth * scaled.x + squareOffset.value.x, 
         y: imgHeight * scaled.y + squareOffset.value.y, 
         width: imgWidth * scaled.width, 
         height: imgHeight * scaled.height
     };
+    const resultSquare = squarify(resultRect);
     ctx.beginPath();
     ctx.rect(
         resultSquare.x, resultSquare.y, resultSquare.width, resultSquare.height
@@ -111,12 +114,34 @@ const updateSquares = (original, scaled) => {
     updateResultCanvas(resultSquare);    
 };
 
+const squarify = (rect) => {
+    const ratio = rect.width / rect.height;
+    if(ratio > 1) {
+        const diff = rect.width - rect.height;
+        return {
+            x: rect.x + diff / 2,
+            y: rect.y,
+            width: rect.height,
+            height: rect.height
+        };
+    } else {
+        const diff = rect.height - rect.width;
+        return {
+            x: rect.x,
+            y: rect.y + diff / 2,
+            width: rect.width,
+            height: rect.width
+        };
+    }
+};
+
+// TODO bug: when dev tools is open, results is not updated --> timing issue?
 const updateResultCanvas = (resultSquare) => {
     const canvas = document.getElementById("picture");
-    const resultCanvas = document.getElementById("result");
-    const resultCtx = resultCanvas.getContext("2d");
-    //resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-    resultCtx.drawImage(canvas, resultSquare.x, resultSquare.y, resultSquare.width, resultSquare.height, 0, 0, resultCanvas.width, resultCanvas.height);
+    const previewCanvas = document.getElementById("preview");
+    const previewCtx = previewCanvas.getContext("2d");
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    previewCtx.drawImage(canvas, resultSquare.x, resultSquare.y, resultSquare.width, resultSquare.height, 0, 0, previewCanvas.width, previewCanvas.height);
 };
 
 const drawImgOnCanvas = () => {
@@ -124,7 +149,7 @@ const drawImgOnCanvas = () => {
     const canvas = document.getElementById("picture");
     const ctx = canvas.getContext("2d");
     const ratio = inputImgEl.width / inputImgEl.height;
-    ctx.drawImage(inputImgEl, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(inputImgEl, 0, 0, canvas.width, canvas.width/ratio);
 };
 
 loadNet();
@@ -152,7 +177,7 @@ watch(squareOffset, () => {
 
 <style>
 
-.wrapper {
+#wrapper {
     display: flex;
 }
 
@@ -164,15 +189,15 @@ img.photo {
 .photobooth {
     position: relative;
     margin: 40px;
-    flex-grow: 2;
+    flex-grow: 1;
 }
 
-.result {
+.output {
     margin: 40px;
-    flex-grow: 2;
+    flex-grow: 1;
 }
 
-.result canvas {
+.preview canvas {
     border: 2px solid #ccc;
 }
 
@@ -180,11 +205,6 @@ canvas#overlay, canvas#picture {
     position: absolute;
     top: 0;
     left: 0;
-}
-
-canvas#picture {
-    left: 600px;
-    border: 1px solid yellow;
 }
 
 .controls {

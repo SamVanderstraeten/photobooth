@@ -15,26 +15,23 @@ import AssetItem from './AssetItem.vue';
 import {ref} from 'vue';
 
 const assets = [
-    {
-      name: "curry.JPG",
+{
+      name: "Wemby",
       url: "/pictures/wemby.jpg"
     },
     {
-      name: "IMG01248729.JPG",
-      url: "/pictures/test.jpg"
+      name: "James",
+      url: "/pictures/james.jpg"
     },
     {
-      name: "IMG01248731.JPG",
-      url: "/pictures/test2.jpg"
+      name: "Luka Doncic",
+      url: "/pictures/luka.jpg"
     },
     {
-      name: "IMG01248733.JPG",
-      url: "/pictures/test3.jpg"
+      name: "Jokic",
+      url: "/pictures/jokic.jpg"
     },
-    {
-      name: "IMG01248733.JPG",
-      url: "/pictures/test4.jpg"
-    }    
+     
   ];
 
 let selectedAsset = ref({});
