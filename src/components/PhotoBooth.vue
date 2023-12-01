@@ -10,8 +10,10 @@
                 <canvas id="preview" width="300" height="300" />
             </div>
             <div class="controls">
-                <span>Scale: {{ squareScale }} <input type="range" class="form-control-range" id="formControlRange" v-model="squareScale" min="1" max="3" step="0.01"></span><br />
+                <span>Scale: {{ squareScale }} <input type="range" class="form-control-range" id="formControlRange" v-model="squareScale" min="1" max="3" step="0.01"></span>
                 <span>Offset: X: {{ squareOffset.x }} Y: {{ squareOffset.y }}</span>
+                <span class="name-input"><input type="text" v-model="playerName" placeholder="Achternaam" /> <input type="text" v-model="playerFirstName" placeholder="Voornaam" /></span>
+                <span><button class="btn btn-primary" @click="downloadPicture" :disabled="invalid()">Download</button></span>
             </div>
         </div>
     </div>
@@ -33,6 +35,12 @@ import { watch, ref } from 'vue';
 
 let squareScale = ref(1);
 let squareOffset = ref({x: 0, y: 0});
+let playerName = ref(''), playerFirstName = ref('');
+
+const invalid = () => {
+    console.log(playerName.value, playerFirstName.value);
+    return playerName.value == "" || playerFirstName.value == "";
+}
 
 const loadNet = async () => {
     let faceDetectionNet = faceapi.nets.tinyFaceDetector;
@@ -152,6 +160,24 @@ const drawImgOnCanvas = () => {
     ctx.drawImage(inputImgEl, 0, 0, canvas.width, canvas.width/ratio);
 };
 
+const downloadPicture = () => {
+    let canvasUrl = document.getElementById("preview").toDataURL();
+    // Create an anchor, and set the href value to our data URL
+    const createEl = document.createElement('a');
+    createEl.href = canvasUrl;
+
+    // This is the name of our downloaded file
+    createEl.download = `${cap(playerName.value)}-${cap(playerFirstName.value)}.jpg`;
+
+    // Click the download button, causing a download, and then remove it
+    createEl.click();
+    createEl.remove();
+}
+
+const cap = (str) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 loadNet();
 
 let face, scaledFace;
@@ -207,7 +233,24 @@ canvas#overlay, canvas#picture {
     left: 0;
 }
 
+/* CONTROLS */
 .controls {
     color: #ddd;
 }
+
+.controls span {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.controls input[type="text"] {
+    padding: 12px;
+    font-size: 1em;
+}
+
+.btn {
+    padding: 12px;
+    font-size: 1em;
+}
+
 </style>
