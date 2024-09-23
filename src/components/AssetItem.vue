@@ -4,10 +4,11 @@
             <img :src="asset.url" alt="asset.name" />
         </picture>
 
-        <section>   
+        <!-- <section>   
             <h4>{{ asset.name }}</h4>
             <span>{{ asset.url }}</span>
-        </section>
+        </section> -->
+        <!-- eerder als tooltip? -->
     </article>
 </template>
 
@@ -22,27 +23,24 @@
 
 <style scoped>
 article {
-    border: 2px solid #aaa;
-    padding: 12px;
     display: flex;
     color: #ddd;
+    height: 100%;
+    display: inline-block;
+    margin: 0 3px;
 }
 
 article:hover {
-    background-color: rgba(160,190,160,0.6);
     cursor: pointer;
-}
-
-article picture {
-    flex-grow: 1;
 }
 
 article picture img {
     width: auto;
-    height: 60px;
+    height: 100%;
 }
 
-article section {
-    flex-grow: 5;
-}
+/* article picture img:hover {
+    width: auto;
+    height: 100%;
+} */
 </style>

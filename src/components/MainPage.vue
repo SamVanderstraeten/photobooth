@@ -1,5 +1,4 @@
 <template>
-
   <nav>
     <AssetItem v-for="(asset, index) of assets" :asset="asset" :key="index" @click="assetSelected(asset)" />
   </nav>
@@ -45,11 +44,10 @@ const assetSelected = (asset) => {
 <style scoped>
   nav {
     border: 2px solid #ccc;
-    flex-grow: 2;
+    height: 15%;
   }
 
   section {
-    border: 2px solid #ccc;
-    flex-grow: 5;
+    height: 85%;
   }
 </style>

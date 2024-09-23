@@ -33,7 +33,7 @@ const props = defineProps({
 import * as faceapi from 'face-api.js';
 import { watch, ref } from 'vue';
 
-let squareScale = ref(1);
+let squareScale = ref(2.2);
 let squareOffset = ref({x: 0, y: 0});
 let playerName = ref(''), playerFirstName = ref('');
 
@@ -70,13 +70,16 @@ const findFace = async () => {
     };
 };
 
-const scaleSquare = (square) => {
+const scaleAndOffsetSquare = (square) => {
     const adjustedWidth = square.width * squareScale.value;
     const adjustedHeight = square.height * squareScale.value;
 
+    let calcX = square.x - (adjustedWidth - square.width) / 2 + squareOffset.value.x;
+    let calcY = square.y - (adjustedHeight - square.height) / 2 + squareOffset.value.y;
+
     return {
-        x: square.x - (adjustedWidth - square.width) / 2,
-        y: square.y - (adjustedHeight - square.height) / 2,
+        x: calcX > 0 ? calcX : 0,
+        y: calcY > 0 ? calcY : 0,
         width: adjustedWidth,
         height: adjustedHeight
     };
@@ -185,13 +188,13 @@ watch( () => props, async (newVal)=> {
     if(newVal.url) {
         drawImgOnCanvas();
         face = await findFace();
-        scaledFace = scaleSquare(face);
+        scaledFace = scaleAndOffsetSquare(face);
         updateSquares(face, scaledFace);
     }
 }, {deep: true, flush: 'post'});
 
 watch(squareScale, () => {
-    scaledFace = scaleSquare(face);
+    scaledFace = scaleAndOffsetSquare(face);
     updateSquares(face, scaledFace);
 });
 
