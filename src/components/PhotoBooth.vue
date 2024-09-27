@@ -5,15 +5,20 @@
             <canvas id="picture" width="500" height="600" />
             <canvas id="overlay" width="500" height="600" />
         </div>
-        <div class="output">
-            <div class="preview">
+        <div class="controls">
+            <span>Scale: {{ squareScale }} <input type="range" class="form-control-range" id="formControlRange" v-model="squareScale" min="1" max="4" step="0.1"></span>
+            <span>Offset: X: {{ squareOffset.x }} Y: {{ squareOffset.y }}</span>
+            <span class="name-input"><input type="text" v-model="playerFirstName" placeholder="Voornaam" /> <input type="text" v-model="playerName" placeholder="Achternaam" /></span>
+            <span><button class="btn btn-primary" @click="downloadPicture" :disabled="invalid()">Download</button></span>
+        </div>
+        <div class="preview">
+            <div class="playerbox">
                 <canvas id="preview" width="300" height="300" />
-            </div>
-            <div class="controls">
-                <span>Scale: {{ squareScale }} <input type="range" class="form-control-range" id="formControlRange" v-model="squareScale" min="1" max="3" step="0.01"></span>
-                <span>Offset: X: {{ squareOffset.x }} Y: {{ squareOffset.y }}</span>
-                <span class="name-input"><input type="text" v-model="playerName" placeholder="Achternaam" /> <input type="text" v-model="playerFirstName" placeholder="Voornaam" /></span>
-                <span><button class="btn btn-primary" @click="downloadPicture" :disabled="invalid()">Download</button></span>
+                <div class='playerinfo'>
+                    <p>{{ playerFirstName }} {{ playerName }}</p>
+                    <p class="light">2024</p>
+                    <p class="light">Lidnummer: 1234567</p>
+                </div>
             </div>
         </div>
     </div>
@@ -33,12 +38,12 @@ const props = defineProps({
 import * as faceapi from 'face-api.js';
 import { watch, ref } from 'vue';
 
-let squareScale = ref(2.2);
+let squareScale = ref(2.3);
 let squareOffset = ref({x: 0, y: 0});
 let playerName = ref(''), playerFirstName = ref('');
+let originalImage = ref();
 
 const invalid = () => {
-    console.log(playerName.value, playerFirstName.value);
     return playerName.value == "" || playerFirstName.value == "";
 }
 
@@ -86,7 +91,7 @@ const scaleAndOffsetSquare = (square) => {
 }
 
 const updateSquares = (original, scaled) => {
-    let colors = ['blue', 'green'];
+    let colors = ['orange', 'yellow'];
     let inputImgEl = document.getElementById("photo");
     const imgWidth = inputImgEl.width;
     const imgHeight = inputImgEl.height;
@@ -102,7 +107,7 @@ const updateSquares = (original, scaled) => {
         imgWidth * original.width, 
         imgHeight * original.height
     );
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 2;
     ctx.strokeStyle = colors.pop();
     ctx.stroke();
 
@@ -115,10 +120,8 @@ const updateSquares = (original, scaled) => {
     };
     const resultSquare = squarify(resultRect);
     ctx.beginPath();
-    ctx.rect(
-        resultSquare.x, resultSquare.y, resultSquare.width, resultSquare.height
-    );
-    ctx.lineWidth = 5;
+    ctx.rect(resultSquare.x, resultSquare.y, resultSquare.width, resultSquare.height);
+    ctx.lineWidth = 2;
     ctx.strokeStyle = colors.pop();
     ctx.stroke();
 
@@ -146,13 +149,21 @@ const squarify = (rect) => {
     }
 };
 
-// TODO bug: when dev tools is open, results is not updated --> timing issue?
+// TODO bug: when dev tools is open, result is not updated --> timing issue?
 const updateResultCanvas = (resultSquare) => {
-    const canvas = document.getElementById("picture");
     const previewCanvas = document.getElementById("preview");
     const previewCtx = previewCanvas.getContext("2d");
     previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-    previewCtx.drawImage(canvas, resultSquare.x, resultSquare.y, resultSquare.width, resultSquare.height, 0, 0, previewCanvas.width, previewCanvas.height);
+
+    let inputImgEl = document.getElementById("photo");
+    let scaleX = originalImage.value.width / inputImgEl.width;
+    let scaleY = originalImage.value.height / inputImgEl.height;
+
+    let cropX = resultSquare.x * scaleX;
+    let cropY = resultSquare.y * scaleY;
+    let cropWidth = resultSquare.width * scaleX;
+    let cropHeight = resultSquare.height * scaleY;
+    previewCtx.drawImage(originalImage.value, cropX, cropY, cropWidth, cropHeight, 0, 0, previewCanvas.width, previewCanvas.height);
 };
 
 const drawImgOnCanvas = () => {
@@ -181,11 +192,17 @@ const cap = (str) => {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+const updateOriginal = (url) => {
+    originalImage.value = new Image();
+    originalImage.value.src = url;
+};
+
 loadNet();
 
 let face, scaledFace;
 watch( () => props, async (newVal)=> {
     if(newVal.url) {
+        updateOriginal(newVal.url);
         drawImgOnCanvas();
         face = await findFace();
         scaledFace = scaleAndOffsetSquare(face);
@@ -208,6 +225,7 @@ watch(squareOffset, () => {
 
 #wrapper {
     display: flex;
+    height: 100%;
 }
 
 img.photo {
@@ -221,15 +239,6 @@ img.photo {
     flex-grow: 1;
 }
 
-.output {
-    margin: 40px;
-    flex-grow: 1;
-}
-
-.preview canvas {
-    border: 2px solid #ccc;
-}
-
 canvas#overlay, canvas#picture {
     position: absolute;
     top: 0;
@@ -239,6 +248,11 @@ canvas#overlay, canvas#picture {
 /* CONTROLS */
 .controls {
     color: #ddd;
+    padding: 40px;
+    flex-grow: 3;
+    background-color: #30353c;
+    position: relative;
+    height: 100%;
 }
 
 .controls span {
@@ -254,6 +268,39 @@ canvas#overlay, canvas#picture {
 .btn {
     padding: 12px;
     font-size: 1em;
+}
+
+.preview {
+    padding: 40px;
+    flex-grow: 3;
+    background-color: #30353c;
+    position: relative;
+    height: 100%;
+}
+
+.playerbox {
+    width: 301px;   
+    border: 1px solid #f9f9f9;
+    background: #ED1B25;
+}
+
+.playerinfo {
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    padding: 30px 15px 30px 15px;
+    color: #fff;
+    background: #ED1B25;
+}
+
+.playerinfo canvas {
+    width: 300px;
+    height: 300px;
+}
+
+.light {
+    line-height: 0.9;
+    font-weight: 300;
 }
 
 </style>

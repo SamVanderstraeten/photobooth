@@ -13,7 +13,7 @@ import MainPage from './components/MainPage.vue'
 body, html {
   margin: 0;
   padding: 0;
-  background-color: #457351;
+  background-color: #f9f9f9;
   width: 100%;
   height: 100%;
 }

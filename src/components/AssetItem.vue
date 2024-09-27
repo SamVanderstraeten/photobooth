@@ -23,7 +23,6 @@
 
 <style scoped>
 article {
-    display: flex;
     color: #ddd;
     height: 100%;
     display: inline-block;
@@ -36,7 +35,9 @@ article:hover {
 
 article picture img {
     width: auto;
-    height: 100%;
+    height: 87%;
+    margin-top:10%;
+    margin-right: 8px;
 }
 
 /* article picture img:hover {
