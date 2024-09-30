@@ -62,7 +62,8 @@ const invalid = () => {
 
 const loadNet = async () => {
     let faceDetectionNet = faceapi.nets.tinyFaceDetector;
-    await faceDetectionNet.load('/data/weights');
+    //await faceDetectionNet.load('/photobooth/data/weights'); // hosted on <main URL>/photobooth
+    await faceDetectionNet.loadFromUri('/data/weights'); // local
     return faceDetectionNet;
 };
 
