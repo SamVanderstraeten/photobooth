@@ -5,20 +5,29 @@
             <canvas id="picture" width="500" height="600" />
             <canvas id="overlay" width="500" height="600" />
         </div>
-        <div class="controls">
-            <span>Scale: {{ squareScale }} <input type="range" class="form-control-range" id="formControlRange" v-model="squareScale" min="1" max="4" step="0.1"></span>
-            <span>Offset: X: {{ squareOffset.x }} Y: {{ squareOffset.y }}</span>
-            <span class="name-input"><input type="text" v-model="playerFirstName" placeholder="Voornaam" /> <input type="text" v-model="playerName" placeholder="Achternaam" /></span>
-            <span><button class="btn btn-primary" @click="downloadPicture" :disabled="invalid()">Download</button></span>
-        </div>
-        <div class="preview">
-            <div class="playerbox">
-                <canvas id="preview" width="300" height="300" />
-                <div class='playerinfo'>
-                    <p>{{ playerFirstName }} {{ playerName }}</p>
-                    <p class="light">2024</p>
-                    <p class="light">Lidnummer: 1234567</p>
+
+        <div class="sidebar">
+            <div class="top">
+                <div class="controls">
+                    <span class="name-input"><input type="text" v-model="playerFirstName" id="namefocus" placeholder="Voornaam" /> <input type="text" v-model="playerName" placeholder="Achternaam" /></span>
+                    <span><button class="btn btn-primary" @click="downloadPicture" :disabled="invalid()">Download picture</button></span>
                 </div>
+                <div class="preview">
+                    <div class="playerbox">
+                        <canvas id="preview" width="300" height="300" />
+                        <div class='playerinfo'>
+                            <p>{{ playerFirstName }} {{ playerName }}</p>
+                            <p class="light">2024</p>
+                            <p class="light">Lidnummer: 1234567</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="shortcuts">
+                <p>Offset: Arrows</p>
+                <p>Zoom: +/-</p>
+                <p>Download: Ctrl+Enter</p>
             </div>
         </div>
     </div>
@@ -38,8 +47,10 @@ const props = defineProps({
 import * as faceapi from 'face-api.js';
 import { watch, ref } from 'vue';
 
-let squareScale = ref(2.3);
-let squareOffset = ref({x: 0, y: 0});
+let defaultScale = 2.3;
+let defaultOffset = {x: 0, y: 0};
+let squareScale = ref(defaultScale);
+let squareOffset = ref(defaultOffset);
 let playerName = ref(''), playerFirstName = ref('');
 let originalImage = ref();
 
@@ -67,6 +78,7 @@ const detectFace = async () => {
 
 const findFace = async () => {
     let face = await detectFace();
+    
     return {
         x: face.relativeBox.x, 
         y: face.relativeBox.y, 
@@ -75,24 +87,30 @@ const findFace = async () => {
     };
 };
 
-const scaleAndOffsetSquare = (square) => {
-    const adjustedWidth = square.width * squareScale.value;
-    const adjustedHeight = square.height * squareScale.value;
+// 'face' contains the face coordinates on the original image
+// coordinates are relative to the image size (0-1)
+const determineAdjustedSquare = (face) => {
+    // Calculate the resulting width and height of the face square
+    const adjustedWidth = face.width * squareScale.value;
+    const adjustedHeight = face.height * squareScale.value;
 
-    let calcX = square.x - (adjustedWidth - square.width) / 2 + squareOffset.value.x;
-    let calcY = square.y - (adjustedHeight - square.height) / 2 + squareOffset.value.y;
+    // Calculate the starting x and y coordinates of the resulting face square
+    let calcX = face.x - (adjustedWidth - face.width) / 2;
+    let calcY = face.y - (adjustedHeight - face.height) / 2;
 
-    return {
+    let resultRect = {
         x: calcX > 0 ? calcX : 0,
         y: calcY > 0 ? calcY : 0,
         width: adjustedWidth,
         height: adjustedHeight
     };
+
+    return resultRect;
 }
 
 const updateSquares = (original, scaled) => {
     let colors = ['orange', 'yellow'];
-    let inputImgEl = document.getElementById("photo");
+    let inputImgEl = document.getElementById("photo"); // original image
     const imgWidth = inputImgEl.width;
     const imgHeight = inputImgEl.height;
     const canvas = document.getElementById("overlay");
@@ -112,20 +130,23 @@ const updateSquares = (original, scaled) => {
     ctx.stroke();
 
     // draw scaled and offset face square
-    const resultRect = {
+    // scaled is still in relative dimensions (0-1)
+    let resultRect = {
         x: imgWidth * scaled.x + squareOffset.value.x, 
         y: imgHeight * scaled.y + squareOffset.value.y, 
         width: imgWidth * scaled.width, 
         height: imgHeight * scaled.height
     };
-    const resultSquare = squarify(resultRect);
+
+    resultRect = squarify(resultRect);
+
     ctx.beginPath();
-    ctx.rect(resultSquare.x, resultSquare.y, resultSquare.width, resultSquare.height);
+    ctx.rect(resultRect.x, resultRect.y, resultRect.width, resultRect.height);
     ctx.lineWidth = 2;
     ctx.strokeStyle = colors.pop();
     ctx.stroke();
 
-    updateResultCanvas(resultSquare);    
+    updateResultCanvas(resultRect);    
 };
 
 const squarify = (rect) => {
@@ -149,7 +170,6 @@ const squarify = (rect) => {
     }
 };
 
-// TODO bug: when dev tools is open, result is not updated --> timing issue?
 const updateResultCanvas = (resultSquare) => {
     const previewCanvas = document.getElementById("preview");
     const previewCtx = previewCanvas.getContext("2d");
@@ -197,27 +217,63 @@ const updateOriginal = (url) => {
     originalImage.value.src = url;
 };
 
+const resetInterface = () => {
+    squareScale.value = defaultScale;
+    squareOffset.value = defaultOffset;
+
+    playerFirstName.value = "";
+    playerName.value = "";
+    document.getElementById("namefocus").focus();
+}
+
 loadNet();
 
-let face, scaledFace;
+let face;
 watch( () => props, async (newVal)=> {
     if(newVal.url) {
         updateOriginal(newVal.url);
+        resetInterface(); 
         drawImgOnCanvas();
         face = await findFace();
-        scaledFace = scaleAndOffsetSquare(face);
-        updateSquares(face, scaledFace);
+        let scaledFace = determineAdjustedSquare(face);
+        updateSquares(face, scaledFace);               
     }
 }, {deep: true, flush: 'post'});
 
 watch(squareScale, () => {
-    scaledFace = scaleAndOffsetSquare(face);
+    let scaledFace = determineAdjustedSquare(face);
     updateSquares(face, scaledFace);
 });
 
 watch(squareOffset, () => {
+    let scaledFace = determineAdjustedSquare(face);
     updateSquares(face, scaledFace);
 });
+
+document.onkeydown = function(evt) {
+    console.log(evt.key);
+    // prevent default behavior for arrow keys
+    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","+","-"].indexOf(evt.key) > -1) {
+        evt.preventDefault();
+    }
+    if(evt.ctrlKey && evt.key == "ArrowUp" || evt.ctrlKey && evt.key == "ArrowRight" || evt.key == "+") {
+        squareScale.value = Math.round((squareScale.value - 0.1)*10)/10;
+    } else if(evt.ctrlKey && evt.key == "ArrowDown" || evt.ctrlKey && evt.key == "ArrowLeft" || evt.key == "-") {
+        squareScale.value = Math.round((squareScale.value + 0.1)*10)/10;
+    } else if (evt.key == "ArrowUp") {
+        squareOffset.value = {x: squareOffset.value.x, y: squareOffset.value.y - 1};
+    } else if (evt.key == "ArrowDown") {
+        squareOffset.value = {x: squareOffset.value.x, y: squareOffset.value.y + 1};
+    } else if (evt.key == "ArrowLeft") {
+        squareOffset.value = {x: squareOffset.value.x - 1, y: squareOffset.value.y};
+    } else if (evt.key == "ArrowRight") {
+        squareOffset.value = {x: squareOffset.value.x + 1, y: squareOffset.value.y};
+    } else if(evt.key == "Escape") {
+        resetInterface();
+    } else if(evt.ctrlKey && evt.key == "Enter") {
+        downloadPicture();
+    } 
+};
 
 </script>
 
@@ -258,6 +314,7 @@ canvas#overlay, canvas#picture {
 .controls span {
     display: block;
     margin-bottom: 10px;
+    margin-top: 60px;
 }
 
 .controls input[type="text"] {
@@ -282,6 +339,8 @@ canvas#overlay, canvas#picture {
     width: 301px;   
     border: 1px solid #f9f9f9;
     background: #ED1B25;
+    margin: 0 auto;
+    margin-top: 32px;
 }
 
 .playerinfo {
@@ -303,4 +362,26 @@ canvas#overlay, canvas#picture {
     font-weight: 300;
 }
 
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 4;
+    position: relative;
+}
+
+.shortcuts {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 10px;
+    background: #ED1B25;
+    color: #fff;
+    font-size: 0.8em;
+    width: 100%;
+}
+
+.top {
+    display: flex;
+    height: 100%;
+}
 </style>
