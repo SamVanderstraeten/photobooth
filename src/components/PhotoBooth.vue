@@ -54,6 +54,8 @@ let squareOffset = ref(defaultOffset);
 let playerName = ref(''), playerFirstName = ref('');
 let originalImage = ref();
 
+const emit = defineEmits(['nextPicture']);
+
 const invalid = () => {
     return playerName.value == "" || playerFirstName.value == "";
 }
@@ -251,7 +253,6 @@ watch(squareOffset, () => {
 });
 
 document.onkeydown = function(evt) {
-    console.log(evt.key);
     // prevent default behavior for arrow keys
     if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","+","-"].indexOf(evt.key) > -1) {
         evt.preventDefault();
@@ -272,6 +273,7 @@ document.onkeydown = function(evt) {
         resetInterface();
     } else if(evt.ctrlKey && evt.key == "Enter") {
         downloadPicture();
+        emit('nextPicture');
     } 
 };
 

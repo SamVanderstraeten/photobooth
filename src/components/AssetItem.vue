@@ -1,6 +1,6 @@
 <template>
     <article>
-        <picture>
+        <picture :class="{'selected': selected}">
             <img :src="asset.url" alt="asset.name" />
         </picture>
 
@@ -17,6 +17,10 @@
         asset: {
             type: Object,
             required: true
+        },
+        selected: {
+            type: Boolean,
+            default: false
         }
     });
 </script>
@@ -38,6 +42,14 @@ article picture img {
     height: 87%;
     margin-top:10%;
     margin-right: 8px;
+}
+
+picture {
+    opacity: 0.6;
+}
+
+picture.selected {
+    opacity: 1;
 }
 
 /* article picture img:hover {

@@ -1,12 +1,14 @@
 <template>
   <nav>
-    <AssetItem v-for="(asset, index) of imageSrc" :asset="asset" :key="index" @click="assetSelected(asset)" />
+    <AssetItem v-for="(asset, index) of imageSrc" :asset="asset" :key="index" :selected="selectedAsset.url === asset.url" @click="assetSelected(asset)" />
 
     <input type="file" id="media" accept="image/*" multiple @change="(event) => handelFileUpload(event)" />
+
+    <img class="logo" src="/src/assets/logo-gems.png" />
   </nav>
 
   <section>
-    <PhotoBooth v-bind="selectedAsset"/>
+    <PhotoBooth v-bind="selectedAsset" @next-picture="selectNextPicture()" />
   </section>
 </template>
 
@@ -33,6 +35,19 @@ const handelFileUpload = (e) => {
     const src = URL.createObjectURL(files[i]);
     imageSrc.value.push({'url': src, 'name': files[i].name});
   }
+
+  if(imageSrc.value.length > 0 && !selectedAsset.value.url) {
+    selectedAsset.value = imageSrc.value[0];
+  }
+};
+
+const selectNextPicture = () => {
+  const index = imageSrc.value.findIndex((asset) => asset.url === selectedAsset.value.url);
+  if(index < imageSrc.value.length - 1) {
+    selectedAsset.value = imageSrc.value[index + 1];
+  } else {
+    selectedAsset.value = imageSrc.value[0];
+  }
 };
 
 </script>
@@ -43,6 +58,11 @@ const handelFileUpload = (e) => {
     height: 20%;
     background-color: #ED1B25;
     padding: 0 12px;
+  }
+
+  nav .logo {
+    height: 100%;
+    float: right;
   }
 
   section {
