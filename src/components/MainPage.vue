@@ -2,7 +2,7 @@
   <nav>
     <AssetItem v-for="(asset, index) of imageSrc" :asset="asset" :key="index" :selected="selectedAsset.url === asset.url" @click="assetSelected(asset)" />
 
-    <input type="file" id="media" accept="image/*" multiple @change="(event) => handelFileUpload(event)" />
+    <input type="file" id="media" class="fileinput" accept="image/*" multiple @change="(event) => handelFileUpload(event)" />
 
     <img class="logo" src="/src/assets/logo-gems.png" />
   </nav>
@@ -67,5 +67,20 @@ const selectNextPicture = () => {
 
   section {
     height: 80%;
+  }
+
+  .fileinput {
+    display: inline-block;
+    cursor: pointer;
+    border-radius: 3px 0 0 3px;
+    border: 1px solid #CED4DA;
+    border-right: none;
+    padding: 6px;
+    color: #ED1B25;
+    background-color: #30353c;
+    /*width: 113px;*/
+    box-sizing: border-box;
+
+    margin: 24px;
   }
 </style>
