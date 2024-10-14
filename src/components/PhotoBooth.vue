@@ -9,7 +9,13 @@
         <div class="sidebar">
             <div class="top">
                 <div class="controls">
-                    <span class="name-input"><input type="text" v-model="playerFirstName" id="namefocus" placeholder="Voornaam" /> <input type="text" v-model="playerName" placeholder="Achternaam" /></span>
+                    <span v-for="player in teamStore.selectedTeamPlayers" :key="player.lidnummer" @click="playerSelected(player)" class="player-name">{{ player.voornaam }} {{  player.naam }}</span>
+
+                    <p> 
+                        <span>Speler staat niet in de lijst:</span>
+                        <span class="small">(geef dan hier onder de volledige naam in)</span>
+                        <span class="name-input"><input type="text" v-model="playerFirstName" id="namefocus" placeholder="Voornaam" /> <input type="text" v-model="playerName" placeholder="Achternaam" /></span>
+                    </p>
                     <span><button class="btn btn-primary" @click="downloadPicture" :disabled="invalid()">Download picture</button></span>
                 </div>
                 <div class="preview">
@@ -46,6 +52,8 @@ const props = defineProps({
 
 import * as faceapi from 'face-api.js';
 import { watch, ref } from 'vue';
+import { useTeamStore } from '../stores/team';
+import router from '../router';
 
 let defaultScale = 2.3;
 let defaultOffset = {x: 0, y: 0};
@@ -55,6 +63,18 @@ let playerName = ref(''), playerFirstName = ref('');
 let originalImage = ref();
 
 const emit = defineEmits(['nextPicture']);
+
+const teamStore = useTeamStore();
+teamStore.fetchTeam().then(() => {
+    if(teamStore.selectedTeamPlayers.length == 0) {
+        router.push('/');
+    }
+});
+
+const playerSelected = (player) => {
+    playerName.value = player.naam;
+    playerFirstName.value = player.voornaam;
+};
 
 const invalid = () => {
     return playerName.value == "" || playerFirstName.value == "";
@@ -316,7 +336,27 @@ canvas#overlay, canvas#picture {
 
 .controls span {
     display: block;
-    margin-bottom: 10px;
+}
+
+.controls span.small {
+    font-size: 0.7em;
+}
+
+.controls .player-name {
+    display: inline-block;
+    padding: 10px;
+    margin: 5px;
+    background-color: #ED1B25;
+    color: #fff;
+    cursor: pointer;
+}
+
+.controls .player-name:hover {
+    background-color: #f9f9f9;
+    color: #ED1B25;
+}
+
+.controls p {
     margin-top: 60px;
 }
 
@@ -328,6 +368,7 @@ canvas#overlay, canvas#picture {
 .btn {
     padding: 12px;
     font-size: 1em;
+    margin-top: 60px;
 }
 
 .preview {
