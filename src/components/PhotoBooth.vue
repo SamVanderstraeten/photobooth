@@ -10,6 +10,7 @@
             <div class="top">
                 <div class="controls">
                     <span v-for="player in teamStore.selectedTeamPlayers" :key="player.lidnummer" @click="playerSelected(player)" class="player-name">{{ player.voornaam }} {{  player.naam }}</span>
+                    <span v-for="coach in teamStore.selectedTeamCoaches" :key="coach.telefoon" @click="playerSelected(coach)" class="player-name">{{ coach.voornaam }} {{  coach.naam }}</span>
 
                     <p> 
                         <span>Speler staat niet in de lijst:</span>

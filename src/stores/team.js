@@ -5,7 +5,8 @@ export const useTeamStore = defineStore('team', {
     return {
       teams: [],
       selectedTeam: null,
-      selectedTeamPlayers: []
+      selectedTeamPlayers: [],
+      selectedTeamCoaches: []
     }
   },
   actions: {
@@ -28,6 +29,7 @@ export const useTeamStore = defineStore('team', {
       const response = await fetch(`https://www.gemsdiepenbeek.be/api/ploeg.php?id=${this.selectedTeam}`);
       const data = await response.json();
       this.selectedTeamPlayers = data.spelers;
+      this.selectedTeamCoaches = data.coaches;
     }
   }
 });
