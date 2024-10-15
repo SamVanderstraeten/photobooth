@@ -2,8 +2,8 @@
     <main>
         <h3>Selecteer een team</h3>
         <!-- Dropdown with all possible teams -->
-        <select v-model="selectedTeam" class="team-select" @change="teamSelected">
-            <option v-for="team in teamStore.teams" :key="team.id" :value="team.id">
+        <select v-model="selectedTeam" class="team-select" @change="teamSelected()">
+            <option v-for="team in teamStore.teams" :key="team.id" :value="team">
                 <span v-if="team.type.toLowerCase() != 'jeugd'">{{ team.type }} {{ team.naam }}</span>
                 <span v-else>{{ team.naam }}</span>
             </option>
@@ -72,5 +72,9 @@
         padding: 30px;
         font-size: 1.1em;
         cursor: pointer;
+    }
+
+    nav {
+        background-color: none;
     }
 </style>

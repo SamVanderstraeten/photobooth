@@ -15,8 +15,8 @@
                     <div class="teambox">
                         <canvas id="preview" width="400" height="300" />
                         <div class='teaminfo'>
-                            <p><strong>{{team.type}}</strong></p>
-                            <p>{{team.name}}</p>
+                            <p><strong>{{teamStore.selectedTeam.type}}</strong></p>
+                            <p>{{teamStore.selectedTeam.naam}}</p>
                         </div>
                     </div>
                 </div>
@@ -44,13 +44,19 @@ const props = defineProps({
 });
 
 import { watch, ref } from 'vue';
+import { useTeamStore } from '../stores/team';
+import router from '../router';
 
 let originalImage = ref();
 let defaultScale = 1;
 let defaultOffset = {x: 0, y: 0};
 let rectScale = ref(defaultScale);
 let rectOffset = ref(defaultOffset);
-let team = ref({id: 1, name: 'U8 Apen', type: 'Jeugd'});
+
+const teamStore = useTeamStore();
+if(teamStore.selectedTeam == null) {
+    router.push('/');
+}
 
 watch( () => props, async (newVal)=> {
     if(newVal.url) {
@@ -83,10 +89,8 @@ const drawImgOnCanvas = () => {
 
 const updateRect = () => {
     let inputImgEl = document.getElementById("photo"); // original image
-    console.log(inputImgEl);
     const imgWidth = inputImgEl.width;
     const imgHeight = inputImgEl.height;
-    console.log(imgWidth, imgHeight);
     const canvas = document.getElementById("overlay");
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -117,7 +121,6 @@ const updateRect = () => {
         width: targetWidth,
         height: targetHeight
     };
-    console.log(resultRect);
 
     updateResultCanvas(resultRect);    
 };
@@ -145,14 +148,13 @@ const downloadPicture = () => {
     createEl.href = canvasUrl;
 
     // This is the name of our downloaded file
-    createEl.download = `${team.value.id}.jpg`;
+    createEl.download = `${teamStore.selectedTeam.id}.jpg`;
 
     // Click the download button, causing a download, and then remove it
     createEl.click();
     createEl.remove();
 
     // TODO bigger format 1600x1200
-    // TODO load team from team store
 }
 
 watch(rectScale, () => {

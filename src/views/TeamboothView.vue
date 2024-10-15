@@ -1,5 +1,5 @@
 <template>
-    <nav> 
+    <nav class="nav-top"> 
       <input type="file" id="media" class="fileinput" accept="image/*" multiple @change="(event) => handleFileUpload(event)" />
   
       <img class="logo" src="/src/assets/logo-gems.png" />
@@ -43,7 +43,7 @@ const handleFileUpload = (e) => {
         color: white;
     }
 
-    nav {
+    nav.nav-top {
       border-bottom: 10px solid #30353c;
       height: 20%;
       background-color: #ED1B25;

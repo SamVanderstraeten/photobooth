@@ -20,13 +20,13 @@ export const useTeamStore = defineStore('team', {
 
     selectTeam(team) {
       this.selectedTeam = team;
-      console.log(this.selectedTeam);
+      console.log("selected:",this.selectedTeam);
     },
 
     async fetchTeam() {
       if(this.selectedTeam == null) return;
 
-      const response = await fetch(`https://www.gemsdiepenbeek.be/api/ploeg.php?id=${this.selectedTeam}`);
+      const response = await fetch(`https://www.gemsdiepenbeek.be/api/ploeg.php?id=${this.selectedTeam.id}`);
       const data = await response.json();
       this.selectedTeamPlayers = data.spelers;
       this.selectedTeamCoaches = data.coaches;
