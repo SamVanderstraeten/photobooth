@@ -1,8 +1,8 @@
 <template>
     <nav class="nav-top"> 
-      <input type="file" id="media" class="fileinput" accept="image/*" multiple @change="(event) => handleFileUpload(event)" />
+      <input type="file" id="media" class="fileinput" accept="image/*" @change="(event) => handleFileUpload(event)" />
   
-      <img class="logo" src="/src/assets/logo-gems.png" />
+      <RouterLink to="/"><img class="logo" src="/src/assets/logo-gems.png" /></RouterLink>
     </nav>
 
     <section>
@@ -64,13 +64,13 @@ const handleFileUpload = (e) => {
       cursor: pointer;
       border-radius: 3px 0 0 3px;
       border: 1px solid #CED4DA;
-      border-right: none;
-      padding: 6px;
+      padding: 32px;
       color: #ED1B25;
       background-color: #30353c;
       /*width: 113px;*/
       box-sizing: border-box;
   
       margin: 24px;
+      height: 70%;
     }
 </style>

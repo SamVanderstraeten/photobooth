@@ -22,12 +22,14 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="shortcuts">
-                <p>Offset: Arrows</p>
-                <p>Zoom: +/-</p>
-                <p>Download: Ctrl+Enter</p>
-            </div>
+        <div class="shortcuts">
+            <p>Offset: Arrows</p>
+            <p>Zoom: +/-</p>
+            <p>Download: Ctrl+Enter</p>
+
+            <RouterLink to="/"><button class="right">Afsluiten</button></RouterLink>
         </div>
     </div>
 </template>
@@ -316,4 +318,12 @@ canvas#overlay, canvas#picture {
     display: flex;
     height: 100%;
 }
+
+.right {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    padding: 20px;
+    font-size: 1.1em;
+}	
 </style>

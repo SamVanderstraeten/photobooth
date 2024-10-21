@@ -35,6 +35,8 @@
                 <p>Offset: Arrows</p>
                 <p>Zoom: +/-</p>
                 <p>Download: Ctrl+Enter</p>
+
+                <RouterLink to="/"><button class="right">Afsluiten</button></RouterLink>
             </div>
         </div>
     </div>
@@ -432,5 +434,13 @@ canvas#overlay, canvas#picture {
 .top {
     display: flex;
     height: 100%;
+}
+
+.right {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    padding: 20px;
+    font-size: 1.1em;
 }
 </style>
