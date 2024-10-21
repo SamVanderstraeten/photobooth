@@ -17,6 +17,7 @@
                         <div class='teaminfo'>
                             <p><strong>{{teamStore.selectedTeam.type}}</strong></p>
                             <p>{{teamStore.selectedTeam.naam}}</p>
+                            <small>(Resultaat zal hogere kwaliteit hebben)</small>
                         </div>
                     </div>
                 </div>
