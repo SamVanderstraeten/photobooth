@@ -225,7 +225,7 @@ const downloadPicture = () => {
     createEl.href = canvasUrl;
 
     // This is the name of our downloaded file
-    createEl.download = `${cap(playerName.value)}-${cap(playerFirstName.value)}.jpg`;
+    createEl.download = `${norm(cap(playerName.value))}-${norm(cap(playerFirstName.value))}.jpg`;
 
     // Click the download button, causing a download, and then remove it
     createEl.click();
@@ -234,6 +234,10 @@ const downloadPicture = () => {
 
 const cap = (str) => {
     return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+const norm = (str) => {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 const updateOriginal = (url) => {
