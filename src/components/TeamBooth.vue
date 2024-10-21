@@ -53,6 +53,8 @@ let defaultOffset = {x: 0, y: 0};
 let rectScale = ref(defaultScale);
 let rectOffset = ref(defaultOffset);
 
+let offscreenCanvas, offscreenCtx;
+
 const teamStore = useTeamStore();
 if(teamStore.selectedTeam == null) {
     router.push('/');
@@ -61,6 +63,8 @@ if(teamStore.selectedTeam == null) {
 watch( () => props, async (newVal)=> {
     if(newVal.url) {
         updateOriginal(newVal.url);
+        
+
         resetInterface(); 
         drawImgOnCanvas();
         setTimeout(() => {
@@ -72,6 +76,18 @@ watch( () => props, async (newVal)=> {
 const updateOriginal = (url) => {
     originalImage.value = new Image();
     originalImage.value.src = url;
+
+    // create an offscreen canvas to render the image in full resolution
+    offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = originalImage.value.width;
+    offscreenCanvas.height = originalImage.value.height;
+    offscreenCtx = offscreenCanvas.getContext('2d');
+    // create image with URL
+    let image = new Image();
+    image.onload = () => {
+        offscreenCtx.drawImage(image, 0, 0);
+    };
+    image.src = url;
 };
 
 const resetInterface = () => {
@@ -88,12 +104,32 @@ const drawImgOnCanvas = () => {
 };
 
 const updateRect = () => {
-    let inputImgEl = document.getElementById("photo"); // original image
-    const imgWidth = inputImgEl.width;
-    const imgHeight = inputImgEl.height;
     const canvas = document.getElementById("overlay");
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let resultRect = getResultRect();
+
+    // draw rectangle
+    ctx.beginPath();   
+    ctx.rect(
+        resultRect.x,
+        resultRect.y,
+        resultRect.width,
+        resultRect.height
+    );
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'orange';
+    ctx.stroke();
+
+    updateResultCanvas(resultRect);    
+};
+
+const getResultRect = () => {
+    let inputImgEl = document.getElementById("photo"); // original image
+
+    const imgWidth = inputImgEl.width;
+    const imgHeight = inputImgEl.height;
 
     const RATIO = 4/3;
     let targetHeight = imgHeight * rectScale.value;
@@ -102,28 +138,18 @@ const updateRect = () => {
         targetWidth = imgWidth* rectScale.value;
         targetHeight = targetWidth / RATIO;
     }
-    
-    // draw rectangle
-    ctx.beginPath();   
-    ctx.rect(
-        rectOffset.value.x + imgWidth /2 - targetWidth / 2,
-        rectOffset.value.y + imgHeight /2 - targetHeight / 2,
-        targetWidth,
-        targetHeight
-    );
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'orange';
-    ctx.stroke();
 
     let resultRect = {
         x: rectOffset.value.x + imgWidth /2 - targetWidth / 2,
         y: rectOffset.value.y + imgHeight /2 - targetHeight / 2,
         width: targetWidth,
-        height: targetHeight
+        height: targetHeight,
+        original_width: imgWidth,
+        original_height: imgHeight
     };
 
-    updateResultCanvas(resultRect);    
-};
+    return resultRect;
+}
 
 const updateResultCanvas = (resultSquare) => {
     const previewCanvas = document.getElementById("preview");
@@ -142,7 +168,21 @@ const updateResultCanvas = (resultSquare) => {
 };
 
 const downloadPicture = () => {
-    let canvasUrl = document.getElementById("preview").toDataURL();
+    let resultRect = getResultRect();
+    let cropX = resultRect.x * originalImage.value.width / resultRect.original_width;
+    let cropY = resultRect.y * originalImage.value.height / resultRect.original_height;
+    let cropWidth = resultRect.width * originalImage.value.width / resultRect.original_width;
+    let cropHeight = resultRect.height * originalImage.value.height / resultRect.original_height;
+
+    let renderCanvas = document.createElement('canvas');
+    renderCanvas.width = 1600; // 4:3 ratio, TODO make this dynamic
+    renderCanvas.height = 1200;
+    let renderCtx = renderCanvas.getContext('2d');
+    renderCtx.drawImage(originalImage.value, cropX, cropY, cropWidth, cropHeight, 0, 0, renderCanvas.width, renderCanvas.height);
+
+    // Create a data URL from the canvas
+    let canvasUrl = renderCanvas.toDataURL();
+
     // Create an anchor, and set the href value to our data URL
     const createEl = document.createElement('a');
     createEl.href = canvasUrl;
@@ -153,8 +193,6 @@ const downloadPicture = () => {
     // Click the download button, causing a download, and then remove it
     createEl.click();
     createEl.remove();
-
-    // TODO bigger format 1600x1200
 }
 
 watch(rectScale, () => {
