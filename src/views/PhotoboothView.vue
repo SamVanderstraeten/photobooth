@@ -1,6 +1,8 @@
 <template>
     <nav>
-      <AssetItem v-for="(asset, index) of imageSrc" :asset="asset" :key="index" :selected="selectedAsset.url === asset.url" @click="assetSelected(asset)" />
+      <div class="assets">
+        <AssetItem v-for="(asset, index) of imageSrc" :asset="asset" :key="index" :selected="selectedAsset.url === asset.url" @click="assetSelected(asset)" />
+      </div>
   
       <input type="file" id="media" class="fileinput" accept="image/*" multiple @change="(event) => handelFileUpload(event)" />
   
@@ -58,11 +60,29 @@
       height: 20%;
       background-color: #ED1B25;
       padding: 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-sizing: border-box;
     }
-  
+
+    .assets {
+      flex: 1 1 auto;
+      min-width: 0;
+      height: 100%;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    nav a {
+      flex: 0 0 auto;
+      height: 100%;
+    }
+
     nav .logo {
       height: 100%;
-      float: right;
     }
   
     section {
@@ -80,7 +100,8 @@
       /*width: 113px;*/
       box-sizing: border-box;
   
-      margin: 24px;
+      flex: 0 0 auto;
+      margin: 0 12px;
       height: 70%;
     }
   </style>

@@ -1,19 +1,16 @@
 <template>
-    <article>
-        <picture :class="{'selected': selected}">
-            <img :src="asset.url" alt="asset.name" />
+    <article :class="{'selected': selected}" :title="displayName">
+        <picture>
+            <img :src="asset.url" :alt="displayName" />
         </picture>
-
-        <!-- <section>   
-            <h4>{{ asset.name }}</h4>
-            <span>{{ asset.url }}</span>
-        </section> -->
-        <!-- eerder als tooltip? -->
+        <span class="name">{{ displayName }}</span>
     </article>
 </template>
 
 <script setup>
-    defineProps({
+    import { computed } from 'vue';
+
+    const props = defineProps({
         asset: {
             type: Object,
             required: true
@@ -23,37 +20,54 @@
             default: false
         }
     });
+
+    const displayName = computed(() => (props.asset.name || '').replace(/\.[^.]+$/, ''));
 </script>
 
 <style scoped>
 article {
-    color: #ddd;
+    flex: 0 0 auto;
+    width: 160px;
     height: 100%;
-    display: inline-block;
-    margin: 0 3px;
+    padding: 8px 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #fff;
+    opacity: 0.6;
 }
 
 article:hover {
     cursor: pointer;
+    opacity: 0.85;
 }
 
-article picture img {
-    width: auto;
-    height: 87%;
-    margin-top:10%;
-    margin-right: 8px;
-}
-
-picture {
-    opacity: 0.6;
-}
-
-picture.selected {
+article.selected {
     opacity: 1;
 }
 
-/* article picture img:hover {
-    width: auto;
+picture {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+picture img {
+    width: 100%;
     height: 100%;
-} */
+    object-fit: contain;
+}
+
+.name {
+    flex: 0 0 auto;
+    margin-top: 4px;
+    width: 100%;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
 </style>

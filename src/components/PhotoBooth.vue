@@ -9,8 +9,8 @@
         <div class="sidebar">
             <div class="top">
                 <div class="controls">
-                    <span v-for="player in teamStore.selectedTeamPlayers" :key="player.lidnummer" @click="playerSelected(player)" class="player-name">{{ player.voornaam }} {{  player.naam }}</span>
-                    <span v-for="coach in teamStore.selectedTeamCoaches" :key="coach.telefoon" @click="playerSelected(coach)" class="player-name">{{ coach.voornaam }} {{  coach.naam }}</span>
+                    <span v-for="player in teamStore.selectedTeamPlayers" :key="player.lidnummer" @click="playerSelected(player)" class="player-name" :class="{'selected': isSelected(player)}">{{ player.voornaam }} {{  player.naam }}</span>
+                    <span v-for="coach in teamStore.selectedTeamCoaches" :key="coach.telefoon" @click="playerSelected(coach)" class="player-name" :class="{'selected': isSelected(coach)}">{{ coach.voornaam }} {{  coach.naam }}</span>
 
                     <p> 
                         <span>Speler staat niet in de lijst:</span>
@@ -34,6 +34,7 @@
             <div class="shortcuts">
                 <p>Offset: Arrows</p>
                 <p>Zoom: +/-</p>
+                <p>Volgende naam: Tab</p>
                 <p>Download: Ctrl+Enter</p>
 
                 <RouterLink to="/"><button class="right">Afsluiten</button></RouterLink>
@@ -74,9 +75,30 @@ teamStore.fetchTeam().then(() => {
     }
 });
 
+// last name picked from the list, so Tab continues from there (also after switching pictures)
+let lastSelectedIndex = -1;
+
+const presetNames = () => [...teamStore.selectedTeamPlayers, ...teamStore.selectedTeamCoaches];
+
 const playerSelected = (player) => {
+    lastSelectedIndex = presetNames().indexOf(player);
     playerName.value = player.naam;
     playerFirstName.value = player.voornaam;
+};
+
+const isSelected = (player) => {
+    return player.naam === playerName.value && player.voornaam === playerFirstName.value;
+};
+
+const selectNextName = (step) => {
+    const names = presetNames();
+    if(names.length == 0) return;
+
+    // nothing picked yet: start at the first (Tab) or last (Shift+Tab) name, otherwise wrap around
+    const index = lastSelectedIndex < 0
+        ? (step > 0 ? 0 : names.length - 1)
+        : (lastSelectedIndex + step + names.length) % names.length;
+    playerSelected(names[index]);
 };
 
 const invalid = () => {
@@ -104,6 +126,9 @@ const detectFace = async () => {
 
 const findFace = async () => {
     let face = await detectFace();
+    if(!face) {
+        return null;
+    }
     
     return {
         x: face.relativeBox.x, 
@@ -245,6 +270,18 @@ const norm = (str) => {
 const updateOriginal = (url) => {
     originalImage.value = new Image();
     originalImage.value.src = url;
+    return waitForImage(originalImage.value);
+};
+
+// resolves once the image element has finished loading its current src
+const waitForImage = (img) => {
+    if(img.complete && img.naturalWidth > 0) {
+        return Promise.resolve();
+    }
+    return new Promise((resolve, reject) => {
+        img.addEventListener('load', resolve, {once: true});
+        img.addEventListener('error', reject, {once: true});
+    });
 };
 
 const resetInterface = () => {
@@ -256,36 +293,55 @@ const resetInterface = () => {
     document.getElementById("namefocus").focus();
 }
 
-loadNet();
+const netLoaded = loadNet();
 
 let face;
+let detectionRun = 0;
 watch( () => props, async (newVal)=> {
     if(newVal.url) {
-        updateOriginal(newVal.url);
+        // ignore results of an older run when the picture changes mid-detection
+        const run = ++detectionRun;
+        face = null;
         resetInterface(); 
+
+        // face detection needs the model and the loaded picture
+        await Promise.all([
+            netLoaded,
+            updateOriginal(newVal.url),
+            waitForImage(document.getElementById("photo"))
+        ]);
+        if(run !== detectionRun) return;
+
         drawImgOnCanvas();
-        face = await findFace();
+        const foundFace = await findFace();
+        if(run !== detectionRun || !foundFace) return;
+
+        face = foundFace;
         let scaledFace = determineAdjustedSquare(face);
         updateSquares(face, scaledFace);               
     }
 }, {deep: true, flush: 'post'});
 
 watch(squareScale, () => {
+    if(!face) return;
     let scaledFace = determineAdjustedSquare(face);
     updateSquares(face, scaledFace);
 });
 
 watch(squareOffset, () => {
+    if(!face) return;
     let scaledFace = determineAdjustedSquare(face);
     updateSquares(face, scaledFace);
 });
 
 document.onkeydown = function(evt) {
     // prevent default behavior for arrow keys
-    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","+","-"].indexOf(evt.key) > -1) {
+    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","+","-","Tab"].indexOf(evt.key) > -1) {
         evt.preventDefault();
     }
-    if(evt.ctrlKey && evt.key == "ArrowUp" || evt.ctrlKey && evt.key == "ArrowRight" || evt.key == "+") {
+    if(evt.key == "Tab") {
+        selectNextName(evt.shiftKey ? -1 : 1);
+    } else if(evt.ctrlKey && evt.key == "ArrowUp" || evt.ctrlKey && evt.key == "ArrowRight" || evt.key == "+") {
         squareScale.value = Math.round((squareScale.value - 0.1)*10)/10;
     } else if(evt.ctrlKey && evt.key == "ArrowDown" || evt.ctrlKey && evt.key == "ArrowLeft" || evt.key == "-") {
         squareScale.value = Math.round((squareScale.value + 0.1)*10)/10;
@@ -358,7 +414,8 @@ canvas#overlay, canvas#picture {
     cursor: pointer;
 }
 
-.controls .player-name:hover {
+.controls .player-name:hover,
+.controls .player-name.selected {
     background-color: #f9f9f9;
     color: #ED1B25;
 }
