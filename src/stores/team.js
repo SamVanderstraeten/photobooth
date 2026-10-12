@@ -6,7 +6,11 @@ export const useTeamStore = defineStore('team', {
       teams: [],
       selectedTeam: null,
       selectedTeamPlayers: [],
-      selectedTeamCoaches: []
+      selectedTeamCoaches: [],
+      // kind of picture being made: 'team', 'player' or 'coach'
+      photoType: 'player',
+      // player/coach pictures: true = only link the name to the untouched picture, false = cut out a square around the face
+      keepOriginal: true
     }
   },
   actions: {

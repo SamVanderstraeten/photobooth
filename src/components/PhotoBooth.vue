@@ -9,11 +9,10 @@
         <div class="sidebar">
             <div class="top">
                 <div class="controls">
-                    <span v-for="player in teamStore.selectedTeamPlayers" :key="player.lidnummer" @click="playerSelected(player)" class="player-name" :class="{'selected': isSelected(player)}">{{ player.voornaam }} {{  player.naam }}</span>
-                    <span v-for="coach in teamStore.selectedTeamCoaches" :key="coach.telefoon" @click="playerSelected(coach)" class="player-name" :class="{'selected': isSelected(coach)}">{{ coach.voornaam }} {{  coach.naam }}</span>
+                    <span v-for="(person, index) in presetNames()" :key="index" @click="playerSelected(person)" class="player-name" :class="{'selected': isSelected(person)}">{{ person.voornaam }} {{  person.naam }}</span>
 
-                    <p> 
-                        <span>Speler staat niet in de lijst:</span>
+                    <p>
+                        <span>{{ teamStore.photoType === 'coach' ? 'Coach' : 'Speler' }} staat niet in de lijst:</span>
                         <span class="small">(geef dan hier onder de volledige naam in)</span>
                         <span class="name-input"><input type="text" v-model="playerFirstName" id="namefocus" placeholder="Voornaam" /> <input type="text" v-model="playerName" placeholder="Achternaam" /></span>
                     </p>
@@ -21,19 +20,29 @@
                 </div>
                 <div class="preview">
                     <div class="playerbox">
-                        <canvas id="preview" width="300" height="300" />
+                        <img v-if="teamStore.keepOriginal" class="original-preview" :src="url" />
+                        <canvas v-else id="preview" width="300" height="300" />
                         <div class='playerinfo'>
                             <p>{{ playerFirstName }} {{ playerName }}</p>
                             <p class="light">2024</p>
                             <p class="light">Lidnummer: 1234567</p>
                         </div>
                     </div>
+
+                    <!-- current picture on the website, to compare with the new one -->
+                    <div v-if="!invalid()" class="current-photo">
+                        <p class="light">Huidige foto op de website</p>
+                        <img v-show="!currentPhotoMissing" :key="currentPhotoUrl" :src="currentPhotoUrl" @error="currentPhotoMissing = true" />
+                        <p v-if="currentPhotoMissing" class="small">Geen foto gevonden</p>
+                    </div>
                 </div>
             </div>
 
             <div class="shortcuts">
-                <p>Offset: Arrows</p>
-                <p>Zoom: +/-</p>
+                <template v-if="!teamStore.keepOriginal">
+                    <p>Offset: Arrows</p>
+                    <p>Zoom: +/-</p>
+                </template>
                 <p>Volgende naam: Tab</p>
                 <p>Download: Ctrl+Enter</p>
 
@@ -55,9 +64,8 @@ const props = defineProps({
 });
 
 import * as faceapi from 'face-api.js';
-import { watch, ref } from 'vue';
+import { watch, ref, computed, onMounted } from 'vue';
 import { useTeamStore } from '../stores/team';
-import router from '../router';
 
 let defaultScale = 2.3;
 let defaultOffset = {x: 0, y: 0};
@@ -69,16 +77,16 @@ let originalImage = ref();
 const emit = defineEmits(['nextPicture']);
 
 const teamStore = useTeamStore();
-teamStore.fetchTeam().then(() => {
-    if(teamStore.selectedTeamPlayers.length == 0) {
-        router.push('/');
-    }
-});
 
 // last name picked from the list, so Tab continues from there (also after switching pictures)
 let lastSelectedIndex = -1;
 
-const presetNames = () => [...teamStore.selectedTeamPlayers, ...teamStore.selectedTeamCoaches];
+// only the players or only the coaches, depending on the kind of picture
+const presetNames = () => teamStore.photoType === 'coach' ? teamStore.selectedTeamCoaches : teamStore.selectedTeamPlayers;
+
+watch(() => teamStore.photoType, () => {
+    lastSelectedIndex = -1;
+});
 
 const playerSelected = (player) => {
     lastSelectedIndex = presetNames().indexOf(player);
@@ -246,13 +254,19 @@ const drawImgOnCanvas = () => {
 };
 
 const downloadPicture = () => {
-    let canvasUrl = document.getElementById("preview").toDataURL();
-    // Create an anchor, and set the href value to our data URL
-    const createEl = document.createElement('a');
-    createEl.href = canvasUrl;
-
     // This is the name of our downloaded file
-    createEl.download = `${norm(cap(playerName.value))}-${norm(cap(playerFirstName.value))}.jpg`;
+    const createEl = document.createElement('a');
+
+    if(teamStore.keepOriginal) {
+        // original format: download the uploaded file untouched, only the name changes
+        const extension = (props.name.match(/\.[^.]+$/) || ['.jpg'])[0];
+        createEl.href = props.url;
+        createEl.download = `${fileName.value}${extension}`;
+    } else {
+        // Create an anchor, and set the href value to our data URL
+        createEl.href = document.getElementById("preview").toDataURL();
+        createEl.download = `${fileName.value}.jpg`;
+    }
 
     // Click the download button, causing a download, and then remove it
     createEl.click();
@@ -266,6 +280,15 @@ const cap = (str) => {
 const norm = (str) => {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
+
+// name of the stored picture (<Achternaam>-<Voornaam>), the same as on the website
+const fileName = computed(() => `${norm(cap(playerName.value))}-${norm(cap(playerFirstName.value))}`);
+
+const currentPhotoUrl = computed(() => `https://www.gemsdiepenbeek.be/assets/players/${encodeURIComponent(fileName.value)}.jpg`);
+const currentPhotoMissing = ref(false);
+watch(currentPhotoUrl, () => {
+    currentPhotoMissing.value = false;
+});
 
 const updateOriginal = (url) => {
     originalImage.value = new Image();
@@ -293,34 +316,62 @@ const resetInterface = () => {
     document.getElementById("namefocus").focus();
 }
 
-const netLoaded = loadNet();
+// face detection is only needed when cutting out a square, so the model is loaded on first use
+let netLoaded = null;
 
 let face;
 let detectionRun = 0;
+const detectFaceSquare = async (url) => {
+    // ignore results of an older run when the picture changes mid-detection
+    const run = ++detectionRun;
+    face = null;
+    clearCanvas("picture");
+    clearCanvas("overlay");
+    if(teamStore.keepOriginal || !url) return;
+
+    // face detection needs the model and the loaded picture
+    netLoaded = netLoaded || loadNet();
+    await Promise.all([
+        netLoaded,
+        updateOriginal(url),
+        waitForImage(document.getElementById("photo"))
+    ]);
+    if(run !== detectionRun) return;
+
+    drawImgOnCanvas();
+    const foundFace = await findFace();
+    if(run !== detectionRun || !foundFace) return;
+
+    face = foundFace;
+    let scaledFace = determineAdjustedSquare(face);
+    updateSquares(face, scaledFace);
+};
+
+const clearCanvas = (id) => {
+    const canvas = document.getElementById(id);
+    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+};
+
 watch( () => props, async (newVal)=> {
     if(newVal.url) {
-        // ignore results of an older run when the picture changes mid-detection
-        const run = ++detectionRun;
-        face = null;
-        resetInterface(); 
-
-        // face detection needs the model and the loaded picture
-        await Promise.all([
-            netLoaded,
-            updateOriginal(newVal.url),
-            waitForImage(document.getElementById("photo"))
-        ]);
-        if(run !== detectionRun) return;
-
-        drawImgOnCanvas();
-        const foundFace = await findFace();
-        if(run !== detectionRun || !foundFace) return;
-
-        face = foundFace;
-        let scaledFace = determineAdjustedSquare(face);
-        updateSquares(face, scaledFace);               
+        resetInterface();
+        detectFaceSquare(newVal.url);
     }
 }, {deep: true, flush: 'post'});
+
+// switching between original format and square cut-out keeps the chosen name
+watch(() => teamStore.keepOriginal, () => {
+    squareScale.value = defaultScale;
+    squareOffset.value = defaultOffset;
+    detectFaceSquare(props.url);
+}, {flush: 'post'});
+
+// coming back from the team picture: the selected picture is already there
+onMounted(() => {
+    if(props.url) {
+        detectFaceSquare(props.url);
+    }
+});
 
 watch(squareScale, () => {
     if(!face) return;
@@ -341,6 +392,14 @@ document.onkeydown = function(evt) {
     }
     if(evt.key == "Tab") {
         selectNextName(evt.shiftKey ? -1 : 1);
+    } else if(evt.ctrlKey && evt.key == "Enter") {
+        downloadPicture();
+        emit('nextPicture');
+    } else if(evt.key == "Escape") {
+        resetInterface();
+    } else if(teamStore.keepOriginal) {
+        // no offset or zoom on the original picture
+        return;
     } else if(evt.ctrlKey && evt.key == "ArrowUp" || evt.ctrlKey && evt.key == "ArrowRight" || evt.key == "+") {
         squareScale.value = Math.round((squareScale.value - 0.1)*10)/10;
     } else if(evt.ctrlKey && evt.key == "ArrowDown" || evt.ctrlKey && evt.key == "ArrowLeft" || evt.key == "-") {
@@ -353,12 +412,7 @@ document.onkeydown = function(evt) {
         squareOffset.value = {x: squareOffset.value.x - 1, y: squareOffset.value.y};
     } else if (evt.key == "ArrowRight") {
         squareOffset.value = {x: squareOffset.value.x + 1, y: squareOffset.value.y};
-    } else if(evt.key == "Escape") {
-        resetInterface();
-    } else if(evt.ctrlKey && evt.key == "Enter") {
-        downloadPicture();
-        emit('nextPicture');
-    } 
+    }
 };
 
 </script>
@@ -458,6 +512,29 @@ canvas#overlay, canvas#picture {
     padding: 30px 15px 30px 15px;
     color: #fff;
     background: #ED1B25;
+}
+
+.playerbox .original-preview {
+    display: block;
+    width: 300px;
+}
+
+.current-photo {
+    width: 301px;
+    margin: 0 auto;
+    margin-top: 24px;
+    color: #ddd;
+    text-align: center;
+}
+
+.current-photo img {
+    display: block;
+    width: 300px;
+    border: 1px solid #f9f9f9;
+}
+
+.current-photo .small {
+    font-size: 0.8em;
 }
 
 .playerinfo canvas {

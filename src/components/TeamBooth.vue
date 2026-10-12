@@ -46,9 +46,8 @@ const props = defineProps({
     }
 });
 
-import { watch, ref } from 'vue';
+import { watch, ref, onMounted } from 'vue';
 import { useTeamStore } from '../stores/team';
-import router from '../router';
 
 let originalImage = ref();
 let defaultScale = 1;
@@ -59,22 +58,29 @@ let rectOffset = ref(defaultOffset);
 let offscreenCanvas, offscreenCtx;
 
 const teamStore = useTeamStore();
-if(teamStore.selectedTeam == null) {
-    router.push('/');
-}
+
+const showPicture = (url) => {
+    updateOriginal(url);
+
+    resetInterface();
+    drawImgOnCanvas();
+    setTimeout(() => {
+        updateRect();
+    }, 100);
+};
 
 watch( () => props, async (newVal)=> {
     if(newVal.url) {
-        updateOriginal(newVal.url);
-        
-
-        resetInterface(); 
-        drawImgOnCanvas();
-        setTimeout(() => {
-            updateRect();
-        }, 100);
+        showPicture(newVal.url);
     }
 }, {deep: true, flush: 'post'});
+
+// coming back from the player/coach pictures: the selected picture is already there
+onMounted(() => {
+    if(props.url) {
+        showPicture(props.url);
+    }
+});
 
 const updateOriginal = (url) => {
     originalImage.value = new Image();

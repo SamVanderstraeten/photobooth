@@ -1,31 +1,31 @@
 <template>
     <main>
         <h3>Selecteer een team</h3>
-        <!-- Dropdown with all possible teams -->
-        <select v-model="selectedTeam" class="team-select" @change="teamSelected()">
-            <option v-for="team in teamStore.teams" :key="team.id" :value="team">
-                <span v-if="team.type.toLowerCase() != 'jeugd'">{{ team.type }} {{ team.naam }}</span>
-                <span v-else>{{ team.naam }}</span>
-            </option>
-        </select>
-
-        <nav class="nav-buttons">
-            <RouterLink to="/photobooth"><button>Spelersfoto's</button></RouterLink>
-            <RouterLink to="/teambooth"><button>Teamfoto</button></RouterLink>
-        </nav>
+        <!-- Buttons for all possible teams -->
+        <div class="team-list">
+            <span v-for="team in teamStore.teams" :key="team.id" @click="teamSelected(team)" class="team-name" :class="{'selected': isSelected(team)}">
+                <template v-if="team.type.toLowerCase() != 'jeugd'">{{ team.type }} {{ team.naam }}</template>
+                <template v-else>{{ team.naam }}</template>
+            </span>
+        </div>
     </main>
 </template>
 
 <script setup>
-    import { ref } from 'vue';
     import { useTeamStore } from '../stores/team';
-    
-    let selectedTeam = ref(null);
+    import router from '../router';
+
     let teamStore = useTeamStore();
     teamStore.fetchTeams();
 
-    const teamSelected = () => {
-        teamStore.selectTeam(selectedTeam.value);
+    // the kind of picture (team, player, coach) is chosen in the photobooth itself
+    const teamSelected = (team) => {
+        teamStore.selectTeam(team);
+        router.push('/photobooth');
+    }
+
+    const isSelected = (team) => {
+        return teamStore.selectedTeam != null && teamStore.selectedTeam.id === team.id;
     }
 </script>
 
@@ -51,27 +51,30 @@
         padding-top: 5%;
     }
 
-    .team-select {
-        text-align: center;
-        padding: 10px;
+    .team-list {
+        width: 60%;
+        margin-left: 20%;
+        margin-top: 3%;
+        max-height: 75%;
+        overflow-y: auto;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .team-list .team-name {
         display: inline-block;
-        width: 40%;
-        font-size: 1.1em;
-        margin-top: 5%;
-        margin-left: 30%;
-    }
-
-    .nav-buttons {
-        width: 40%;
-        margin-left: 30%;
-        margin-top: 10%;
-    }
-
-    .nav-buttons button {
-        width: 50%;
-        padding: 30px;
-        font-size: 1.1em;
+        padding: 10px;
+        margin: 5px;
+        background-color: #ED1B25;
+        color: #fff;
         cursor: pointer;
+    }
+
+    .team-list .team-name:hover,
+    .team-list .team-name.selected {
+        background-color: #f9f9f9;
+        color: #ED1B25;
     }
 
     nav {
