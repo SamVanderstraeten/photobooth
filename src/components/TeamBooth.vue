@@ -261,6 +261,15 @@ canvas#overlay, canvas#picture {
     left: 0;
 }
 
+.controls {
+    color: #ddd;
+    padding: 40px;
+    flex-grow: 3;
+    background-color: #30353c;
+    position: relative;
+    height: 100%;
+}
+
 .btn {
     padding: 12px;
     font-size: 1em;

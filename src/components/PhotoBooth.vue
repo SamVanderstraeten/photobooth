@@ -18,22 +18,30 @@
                     </p>
                     <span><button class="btn btn-primary" @click="downloadPicture" :disabled="invalid()">Download picture</button></span>
                 </div>
+                <!-- new picture and the current one on the website side by side, to compare them -->
                 <div class="preview">
-                    <div class="playerbox">
-                        <img v-if="teamStore.keepOriginal" class="original-preview" :src="url" />
-                        <canvas v-else id="preview" width="300" height="300" />
-                        <div class='playerinfo'>
-                            <p>{{ playerFirstName }} {{ playerName }}</p>
-                            <p class="light">2024</p>
-                            <p class="light">Lidnummer: 1234567</p>
+                    <div class="compare">
+                        <p class="compare-title">Nieuwe foto</p>
+                        <div class="playerbox">
+                            <img v-if="teamStore.keepOriginal" class="original-preview" :src="url" />
+                            <canvas v-else id="preview" width="300" height="300" />
+                            <div class='playerinfo'>
+                                <p>{{ playerFirstName }} {{ playerName }}</p>
+                                <p class="light">2024</p>
+                                <p class="light">Lidnummer: 1234567</p>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- current picture on the website, to compare with the new one -->
-                    <div v-if="!invalid()" class="current-photo">
-                        <p class="light">Huidige foto op de website</p>
-                        <img v-show="!currentPhotoMissing" :key="currentPhotoUrl" :src="currentPhotoUrl" @error="currentPhotoMissing = true" />
-                        <p v-if="currentPhotoMissing" class="small">Geen foto gevonden</p>
+                    <div class="compare">
+                        <p class="compare-title">Huidige foto op de website</p>
+                        <div class="current-photo">
+                            <span v-if="invalid()">Kies een naam</span>
+                            <template v-else>
+                                <img v-show="!currentPhotoMissing" :key="currentPhotoUrl" :src="currentPhotoUrl" @error="currentPhotoMissing = true" />
+                                <span v-if="currentPhotoMissing">Geen foto gevonden</span>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -417,7 +425,7 @@ document.onkeydown = function(evt) {
 
 </script>
 
-<style>
+<style scoped>
 
 #wrapper {
     display: flex;
@@ -432,7 +440,7 @@ img.photo {
 .photobooth {
     position: relative;
     margin: 40px;
-    flex-grow: 1;
+    flex: 0 0 auto;
 }
 
 canvas#overlay, canvas#picture {
@@ -444,11 +452,10 @@ canvas#overlay, canvas#picture {
 /* CONTROLS */
 .controls {
     color: #ddd;
-    padding: 40px;
-    flex-grow: 3;
-    background-color: #30353c;
-    position: relative;
-    height: 100%;
+    padding: 24px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-y: auto;
 }
 
 .controls span {
@@ -475,7 +482,7 @@ canvas#overlay, canvas#picture {
 }
 
 .controls p {
-    margin-top: 60px;
+    margin-top: 32px;
 }
 
 .controls input[type="text"] {
@@ -486,60 +493,70 @@ canvas#overlay, canvas#picture {
 .btn {
     padding: 12px;
     font-size: 1em;
-    margin-top: 60px;
+    margin-top: 24px;
 }
 
+/* PREVIEW: new picture next to the current one on the website */
 .preview {
-    padding: 40px;
-    flex-grow: 3;
-    background-color: #30353c;
-    position: relative;
-    height: 100%;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.compare {
+    width: clamp(180px, 15vw, 300px);
+}
+
+.compare-title {
+    color: #ddd;
+    font-size: 0.8em;
+    text-align: center;
+    margin-bottom: 8px;
 }
 
 .playerbox {
-    width: 301px;   
     border: 1px solid #f9f9f9;
     background: #ED1B25;
-    margin: 0 auto;
-    margin-top: 32px;
 }
 
 .playerinfo {
     font-weight: 700;
     line-height: 1;
     text-align: center;
-    padding: 30px 15px 30px 15px;
+    padding: 20px 10px;
     color: #fff;
     background: #ED1B25;
 }
 
+.playerbox canvas,
 .playerbox .original-preview {
     display: block;
-    width: 300px;
+    width: 100%;
+}
+
+.playerbox canvas,
+.playerbox .original-preview,
+.current-photo img {
+    height: auto;
 }
 
 .current-photo {
-    width: 301px;
-    margin: 0 auto;
-    margin-top: 24px;
-    color: #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: clamp(180px, 15vw, 300px);
+    border: 1px solid #f9f9f9;
+    color: #999;
+    font-size: 0.8em;
     text-align: center;
 }
 
 .current-photo img {
     display: block;
-    width: 300px;
-    border: 1px solid #f9f9f9;
-}
-
-.current-photo .small {
-    font-size: 0.8em;
-}
-
-.playerinfo canvas {
-    width: 300px;
-    height: 300px;
+    width: 100%;
 }
 
 .light {
@@ -550,31 +567,33 @@ canvas#overlay, canvas#picture {
 .sidebar {
     display: flex;
     flex-direction: column;
-    flex-grow: 4;
-    position: relative;
-}
-
-.shortcuts {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    padding: 10px;
-    background: #ED1B25;
-    color: #fff;
-    font-size: 0.8em;
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+    background-color: #30353c;
 }
 
 .top {
     display: flex;
-    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.shortcuts {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 10px;
+    background: #ED1B25;
+    color: #fff;
+    font-size: 0.8em;
+}
+
+.shortcuts a {
+    margin-left: auto;
 }
 
 .right {
-    position: absolute;
-    right: 20px;
-    top: 20px;
-    padding: 20px;
+    padding: 12px 20px;
     font-size: 1.1em;
 }
 </style>
